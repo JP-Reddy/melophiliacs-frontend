@@ -77,56 +77,42 @@
 // };
 // src/context/AuthContext.jsx
 import { createContext, useContext, useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom'; // Added useLocation
 
 const AuthContext = createContext(null);
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
 
 export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [token, setToken] = useState(localStorage.getItem('session_token'));
+  // No more client-side token state or localStorage for the token itself
   const navigate = useNavigate();
+  const location = useLocation(); // To check if we just came from a login redirect
 
   useEffect(() => {
-    // Check for token in URL when component mounts
-    const params = new URLSearchParams(window.location.search);
-    const newToken = params.get('token');
-    console.log("Token ", newToken);
-    if (newToken) {
-      setToken(newToken);
-      setIsAuthenticated(true);
-      localStorage.setItem('session_token', newToken);
-      // Clean URL
-      window.history.replaceState({}, document.title, "/dashboard");
-    }
-    setLoading(false);
-  }, []);
-
-  useEffect(() => {
-    // Verify token whenever it changes
-    if (token) {
-      checkAuthStatus();
-    }
-  }, [token]);
+    // Check auth status when the app loads or when user navigates to a new page after login
+    // The `location.key` changes on navigation, providing a trigger after redirect from backend.
+    // We also want to check on initial load.
+    checkAuthStatus();
+  }, [location.key]); // Re-check when navigation happens (e.g., after redirect from /callback)
 
   const checkAuthStatus = async () => {
+    setLoading(true);
     try {
-      const response = await fetch('https://deadmousse.pythonanywhere.com/check-auth', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+      // This endpoint should be protected by the HttpOnly cookie session
+      const response = await fetch(`${API_BASE_URL}/api/v1/auth/me`, {
+        credentials: 'include', // Crucial for sending cookies
       });
       
-      const isValid = response.ok;
-      setIsAuthenticated(isValid);
+      setIsAuthenticated(response.ok);
       
-      if (!isValid) {
-        localStorage.removeItem('session_token');
-        setToken(null);
-        if (window.location.pathname !== '/') {
-          navigate('/');
-        }
+      if (response.ok && window.location.pathname === '/') {
+        // If authenticated and on homepage, redirect to dashboard
+        // This handles the case where user opens the app and is already logged in via cookie
+        navigate('/dashboard', { replace: true });
       }
+      
     } catch (error) {
       console.error('Auth check failed:', error);
       setIsAuthenticated(false);
@@ -136,57 +122,57 @@ export const AuthProvider = ({ children }) => {
   };
 
   const login = () => {
-    window.location.href = 'https://deadmousse.pythonanywhere.com/login';
+    // Redirect to backend which handles Spotify OAuth and sets HttpOnly cookie on callback
+    const frontendUrl = window.location.origin;
+    window.location.href = `${API_BASE_URL}/api/v1/auth/login?final_redirect_uri=${encodeURIComponent(frontendUrl + '/dashboard')}`;
   };
 
   const logout = async () => {
     try {
-      await fetch('https://deadmousse.pythonanywhere.com/logout', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+      // Backend should clear Redis session AND send headers to clear HttpOnly cookie
+      await fetch(`${API_BASE_URL}/api/v1/auth/logout`, {
+        method: 'POST', 
+        credentials: 'include', // Crucial for sending cookies
       });
-      localStorage.removeItem('session_token');
-      setToken(null);
+    } catch (error) {
+      console.error('Logout API call failed:', error);
+      // Proceed with client-side logout actions anyway
+    } finally {
       setIsAuthenticated(false);
       navigate('/');
-    } catch (error) {
-      console.error('Logout failed:', error);
     }
   };
 
-  // Helper function for making authenticated requests
-  const fetchWithToken = async (url, options = {}) => {
-    if (!token) throw new Error('No authentication token');
-    
-    const headers = {
-      ...options.headers,
-      'Authorization': `Bearer ${token}`
-    };
-
-    const response = await fetch(url, {
+  // Renamed from fetchWithToken to fetchAuthenticatedApi
+  const fetchAuthenticatedApi = async (endpoint, options = {}) => {
+    const response = await fetch(`${API_BASE_URL}/api${endpoint}`, {
       ...options,
-      headers
+      credentials: 'include', // Crucial for sending cookies
+      headers: {
+        ...options.headers,
+        // No Authorization header needed; cookie is sent automatically
+      },
     });
 
+    if (response.status === 401) {
+      // Unauthorized, cookie session likely invalid or expired
+      console.warn('API request unauthorized (401). Logging out.');
+      setIsAuthenticated(false);
+      navigate('/'); // Redirect to login
+      throw new Error('Session expired or token invalid.');
+    }
+
     if (!response.ok) {
-      // Handle 401 Unauthorized
-      if (response.status === 401) {
-        setIsAuthenticated(false);
-        localStorage.removeItem('session_token');
-        setToken(null);
-        navigate('/');
-        throw new Error('Session expired');
-      }
-      throw new Error('API request failed');
+      const errorData = await response.json().catch(() => ({ detail: 'API request failed with status: ' + response.status }));
+      throw new Error(errorData.detail || 'API request failed');
+    }
+    
+    if (response.status === 204) { // Handle No Content
+        return null;
     }
 
     return response.json();
   };
-
-  if (loading) {
-    return <div>Loading...</div>;
-  }
 
   return (
     <AuthContext.Provider 
@@ -194,7 +180,7 @@ export const AuthProvider = ({ children }) => {
         isAuthenticated, 
         login, 
         logout, 
-        fetchWithToken,
+        fetchAuthenticatedApi, // Use the new function name
         loading 
       }}
     >
