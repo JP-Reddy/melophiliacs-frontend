@@ -16,11 +16,11 @@ const Dashboard = () => {
       try {
         // Fetch top artists
         const artistsData = await fetchAuthenticatedApi('/v1/artists/top');
-        setArtists(artistsData || []);
+        setArtists((artistsData || []).slice(0, 30));
         
         // Fetch top albums
         const albumsData = await fetchAuthenticatedApi('/v1/albums/top');
-        setAlbums(albumsData || []);
+        setAlbums((albumsData || []).slice(0, 30));
         
       } catch (err) {
         console.error("Dashboard fetch error:", err);
@@ -99,20 +99,22 @@ const Dashboard = () => {
         <section className="mb-12">
           <h2 className="text-3xl font-bold mb-8">Your Top Artists</h2>
           {artists.length > 0 ? (
-            <div className="grid gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2">
               {artists.map(([artist, count], index) => (
                 <div 
                   key={artist}
-                  className="bg-gray-900/50 backdrop-blur-sm rounded-lg p-4 hover:bg-gray-900/70 transition-colors"
+                  className="bg-gray-900/50 rounded-lg p-2 hover:bg-gray-900/70 transition-colors"
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <span className="text-lg font-semibold text-gray-400 w-8">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 truncate">
+                      <span className="text-sm font-medium text-gray-400 w-6 flex-shrink-0 text-right">
                         {index + 1}.
                       </span>
-                      <span className="text-xl font-medium">{artist}</span>
+                      <span className="text-base font-medium truncate" title={artist}>
+                        {artist}
+                      </span>
                     </div>
-                    <span className="bg-green-500/10 text-green-500 px-3 py-1 rounded-full text-sm font-medium">
+                    <span className="bg-green-500/10 text-green-400 px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap">
                       {count} songs
                     </span>
                   </div>
@@ -128,8 +130,8 @@ const Dashboard = () => {
         <section>
           <h2 className="text-3xl font-bold mb-8">Your Top Albums</h2>
           {albums.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {albums.map((albumDetails) => {
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {albums.map((albumDetails, index) => {
                 const albumName = albumDetails.album_name || "Unknown Album";
                 const albumArt = albumDetails.album_art_url || '/api/placeholder/100/100';
                 const albumArtists = albumDetails.artists ? albumDetails.artists.join(", ") : "Various Artists";
@@ -137,23 +139,26 @@ const Dashboard = () => {
                 return (
                   <div 
                     key={albumDetails.album_id}
-                    className="bg-gray-900/50 backdrop-blur-sm rounded-lg p-4 hover:bg-gray-900/70 transition-colors flex flex-col"
+                    className="bg-gray-900/50 backdrop-blur-sm rounded-lg p-4 hover:bg-gray-900/70 transition-colors"
                   >
                     <div className="flex gap-4 items-start">
-                      <img 
-                        src={albumArt}
-                        alt={albumName}
-                        className="w-24 h-24 rounded-md object-cover"
-                      />
+                      <div className="relative flex-shrink-0">
+                        <img 
+                          src={albumArt}
+                          alt={albumName}
+                          className="w-24 h-24 rounded-md object-cover"
+                        />
+                        <span className="absolute top-0 left-0 bg-black bg-opacity-70 text-white text-sm font-semibold w-6 h-6 flex items-center justify-center rounded-tl-md rounded-br-md">
+                          {index + 1}
+                        </span>
+                      </div>
                       <div className="flex-grow">
                         <h3 className="font-medium text-lg mb-1 line-clamp-2">{albumName}</h3>
                         <p className="text-gray-400 text-sm mb-2 line-clamp-1">{albumArtists}</p>
+                        <span className="bg-green-500/10 text-green-500 px-2 py-1 rounded-full text-xs font-medium">
+                          {albumDetails.saved_track_count} of {albumDetails.total_tracks_in_album} tracks
+                        </span>
                       </div>
-                    </div>
-                    <div className="mt-auto pt-2">
-                      <span className="bg-green-500/10 text-green-500 px-2 py-1 rounded-full text-xs font-medium">
-                        {albumDetails.saved_track_count} of {albumDetails.total_tracks_in_album} tracks
-                      </span>
                     </div>
                   </div>
                 );
