@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Music, LogOut } from 'lucide-react';
+import { Music, LogOut, AlertTriangle } from 'lucide-react';
 
 const Dashboard = () => {
   const [artists, setArtists] = useState([]);
@@ -23,8 +23,13 @@ const Dashboard = () => {
         setAlbums((albumsData || []).slice(0, 30));
         
       } catch (err) {
-        console.error("Dashboard fetch error:", err);
-        setError(err.message);
+        const errorMessage = (err.message || "").toLowerCase();
+        if (errorMessage.includes('rate limit') || errorMessage.includes('too many requests')) {
+          setError("Spotify's API is busy. Please refresh in a few seconds. Their rate limits are a little ridiculous.");
+        } else {
+          console.error("Dashboard fetch error:", err);
+          setError(err.message);
+        }
       } finally {
         setLoading(false);
       }
@@ -62,10 +67,13 @@ const Dashboard = () => {
           </div>
         </nav>
         <div className="container mx-auto px-4 py-8 pt-24 text-center">
-          <div className="bg-red-500/10 border border-red-500 rounded-lg p-6">
-            <h2 className="text-2xl font-semibold mb-3 text-red-400">Oops! Something went wrong.</h2>
-            <p className="text-red-300">{error}</p>
-            <p className="text-gray-400 mt-4 text-sm">Please ensure the backend API is running and accessible. You might need to log out and log back in.</p>
+          <div className="bg-red-500/10 border border-red-500 rounded-lg p-6 max-w-2xl mx-auto">
+            <div className="flex justify-center items-center gap-3 mb-3">
+              <AlertTriangle className="h-6 w-6 text-red-400" />
+              <h2 className="text-2xl font-semibold text-red-400">An Error Occurred</h2>
+            </div>
+            <p className="text-red-300 mb-4">{error}</p>
+            <p className="text-gray-400 mt-4 text-sm">If the problem persists, you might need to log out and log back in.</p>
           </div>
         </div>
       </div>
