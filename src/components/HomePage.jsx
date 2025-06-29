@@ -44,6 +44,23 @@ const HomePage = () => {
           <p className="text-lg lg:text-xl text-gray-300 mb-10">
             Learn more about your music taste and categorize your music into genre specific playlists.
           </p>
+
+          {/* API Access Notice */}
+          <div className="bg-sky-950/60 border border-sky-800 backdrop-blur-sm text-sky-100 text-sm rounded-lg p-4 mb-8 max-w-xl mx-auto">
+            <h4 className="font-bold mb-2 text-white">A Note on Access</h4>
+            <p className="text-left text-gray-300">
+              This app uses Spotify's API in "Development Mode". To use this app, you must be manually added to the user list. Please share your Spotify username and email with me, and I will add you within 24 hours.
+              <br/><br/>
+              You can DM me directly or email: <a href="mailto:guthijp.reddy@gmail.com" className="font-medium underline text-sky-300 hover:text-white">guthijp.reddy@gmail.com</a>.
+              <br/><br/>
+              I apologize for this inconvenience. Spotify has made it nearly impossible for indie developers to use their API for small-scale projects. You can read more about their recent anti-developer changes here:
+              <ul className="list-disc list-inside mt-2">
+                <li><a href="https://developer.spotify.com/blog/2025-04-15-updating-the-criteria-for-web-api-extended-access" target="_blank" rel="noopener noreferrer" className="underline text-sky-300 hover:text-white">Official Blog Post</a></li>
+                <li><a href="https://community.spotify.com/t5/Spotify-for-Developers/Updating-the-Criteria-for-Web-API-Extended-Access/m-p/6920661#M17569" target="_blank" rel="noopener noreferrer" className="underline text-sky-300 hover:text-white">Community Discussion</a></li>
+              </ul>
+            </p>
+          </div>
+
           <button
             onClick={login}
             className="bg-green-500 hover:bg-green-400 text-white font-bold py-3 px-6 md:py-4 md:px-8 rounded-full text-base md:text-lg transition-all transform hover:scale-105 flex items-center gap-2 mx-auto"

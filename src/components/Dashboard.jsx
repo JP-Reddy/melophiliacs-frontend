@@ -7,12 +7,21 @@ const Dashboard = () => {
   const [albums, setAlbums] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showSlowLoadingMessage, setShowSlowLoadingMessage] = useState(false);
   const { logout, fetchAuthenticatedApi } = useAuth();
 
   useEffect(() => {
+    // Set a timeout to show the slow loading message
+    const timer = setTimeout(() => {
+      if (loading) {
+        setShowSlowLoadingMessage(true);
+      }
+    }, 10000); // 10 seconds
+
     const fetchData = async () => {
       setLoading(true);
       setError(null);
+      setShowSlowLoadingMessage(false); // Reset on each fetch
       try {
         // Fetch top artists
         const artistsData = await fetchAuthenticatedApi('/v1/artists/top');
@@ -36,12 +45,18 @@ const Dashboard = () => {
     };
 
     fetchData();
+
+    // Cleanup the timer when the component unmounts or when loading is finished
+    return () => clearTimeout(timer);
   }, [fetchAuthenticatedApi]);
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-black flex justify-center items-center">
+      <div className="min-h-screen bg-black flex flex-col justify-center items-center text-center">
         <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-green-500"></div>
+        {showSlowLoadingMessage && (
+          <p className="text-gray-400 mt-4">Results might be slow sometimes due to Spotify's shitty rate limits...</p>
+        )}
       </div>
     );
   }
