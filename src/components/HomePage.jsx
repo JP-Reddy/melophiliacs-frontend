@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Music, ListMusic } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Navigate } from 'react-router-dom';
@@ -6,6 +6,19 @@ import SneakPeekTabs from './SneakPeekTabs';
 
 const HomePage = () => {
   const { isAuthenticated, login } = useAuth();
+  const [showCookieBanner, setShowCookieBanner] = useState(false);
+
+  useEffect(() => {
+    const cookieConsent = localStorage.getItem('cookieConsent');
+    if (!cookieConsent) {
+      setShowCookieBanner(true);
+    }
+  }, []);
+
+  const handleCookieAccept = () => {
+    localStorage.setItem('cookieConsent', 'true');
+    setShowCookieBanner(false);
+  };
 
   console.log("isAuthenticated", isAuthenticated);
   if (isAuthenticated) {
@@ -76,6 +89,23 @@ const HomePage = () => {
 
         </div>
       </div>
+
+      {/* Cookie Consent Banner */}
+      {showCookieBanner && (
+        <div className="fixed bottom-0 left-0 right-0 bg-gray-900/80 backdrop-blur-md p-3 md:p-4 z-50">
+          <div className="container mx-auto flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-xs sm:text-sm text-gray-300">
+              <span className="font-bold text-white">A Note on Cookies:</span> This site uses an essential cookie to manage your login session. By clicking "Accept", you agree to its use.
+            </p>
+            <button
+              onClick={handleCookieAccept}
+              className="bg-green-600 hover:bg-green-500 text-white font-semibold py-1 px-3 sm:py-2 sm:px-4 rounded-lg flex-shrink-0 self-end sm:self-auto"
+            >
+              Accept
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
